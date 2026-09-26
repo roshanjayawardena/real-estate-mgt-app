@@ -1,0 +1,51 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, var(--brand-wash), transparent 60%),
+    var(--surface-sunken);
+}
+
+.panel {
+  width: min(420px, 100%);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--brand-strong);
+  margin-bottom: 24px;
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+
+.lead {
+  margin: 4px 0 24px;
+}
+
+.submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.failure {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bad-wash);
+  color: var(--bad);
+  font-size: 0.9375rem;
+}

@@ -1,0 +1,61 @@
+<app-page-header heading="New tenancy" subheading="A draft first: the bond and activation come next.">
+  <a class="button button--quiet" routerLink="/tenancies">Cancel</a>
+</app-page-header>
+
+<section class="card">
+  <div class="card__body">
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field wide">
+        <label class="field__label" for="propertyId">Property</label>
+        <select id="propertyId" formControlName="propertyId">
+          <option value="">Choose a vacant property</option>
+          @for (property of options(); track property.id) {
+            <option [value]="property.id">{{ property.address }}, {{ property.suburb }}</option>
+          }
+        </select>
+        @if (options().length === 0 && !properties.isLoading()) {
+          <span class="field__hint">
+            No vacant managed properties. A property needs a signed agreement before it can be let.
+          </span>
+        }
+      </div>
+
+      <div class="field wide">
+        <label class="field__label" for="tenantUserIds">Tenants</label>
+        <input id="tenantUserIds" type="text" formControlName="tenantUserIds" placeholder="User id, user id" />
+        <span class="field__hint">The renters' user ids, separated by commas.</span>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="startDate">Start date</label>
+        <input id="startDate" type="date" formControlName="startDate" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="endDate">End date</label>
+        <input id="endDate" type="date" formControlName="endDate" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="weeklyRent">Weekly rent</label>
+        <input id="weeklyRent" type="number" step="0.01" formControlName="weeklyRent" />
+        <span class="field__hint">Australian rent is quoted weekly, whatever the payment cycle.</span>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="frequency">Paid</label>
+        <select id="frequency" formControlName="frequency">
+          @for (frequency of frequencies; track frequency) {
+            <option [value]="frequency">{{ frequency }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="row row--end wide">
+        <button type="submit" class="button" [disabled]="saving()">
+          {{ saving() ? 'Creating…' : 'Create draft' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</section>

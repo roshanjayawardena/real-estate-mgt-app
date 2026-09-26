@@ -1,0 +1,69 @@
+<div class="page">
+  <section class="panel card">
+    <div class="card__body">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true">K</span>
+        <span>Keyhouse</span>
+      </div>
+
+      @if (accepted(); as result) {
+        <h1>You're all set</h1>
+        <p class="muted lead">
+          Your account is active as <strong>{{ result.role }}</strong>. Sign in with
+          {{ result.email }} to get started.
+        </p>
+
+        <button type="button" class="button submit" (click)="goToSignIn()">Go to sign in</button>
+      } @else {
+        <h1>Accept your invitation</h1>
+        <p class="muted lead">Choose a name and a password, and the account is yours.</p>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="field">
+            <label class="field__label" for="firstName">First name</label>
+            <input id="firstName" type="text" autocomplete="given-name" formControlName="firstName" />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="lastName">Last name</label>
+            <input id="lastName" type="text" autocomplete="family-name" formControlName="lastName" />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              autocomplete="new-password"
+              formControlName="password"
+              [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
+            />
+            <span class="field__hint">At least ten characters.</span>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="confirmPassword">Confirm password</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              autocomplete="new-password"
+              formControlName="confirmPassword"
+              [attr.aria-invalid]="form.errors?.['passwordsDiffer'] === true"
+            />
+            @if (form.errors?.['passwordsDiffer'] && form.controls.confirmPassword.touched) {
+              <span class="field__error">The two passwords are different.</span>
+            }
+          </div>
+
+          @if (failure(); as message) {
+            <p class="failure" role="alert">{{ message }}</p>
+          }
+
+          <button type="submit" class="button submit" [disabled]="submitting()">
+            {{ submitting() ? 'Setting up…' : 'Create my account' }}
+          </button>
+        </form>
+      }
+    </div>
+  </section>
+</div>

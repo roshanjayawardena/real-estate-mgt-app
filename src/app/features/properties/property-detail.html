@@ -1,0 +1,141 @@
+@if (property.isLoading()) {
+  <app-state-note>Loading the property…</app-state-note>
+} @else if (property.error()) {
+  <app-state-note tone="bad">That property could not be loaded.</app-state-note>
+} @else if (property.value(); as item) {
+  <app-page-header [heading]="item.address" [subheading]="item.suburb + ' ' + item.state + ' ' + item.postcode">
+    <a class="button button--quiet" routerLink="/properties">Back to portfolio</a>
+    @if (item.currentTenancyId) {
+      <a class="button" [routerLink]="['/tenancies', item.currentTenancyId]">Open tenancy</a>
+    }
+  </app-page-header>
+
+  <div class="grid layout">
+    <section class="card">
+      <div class="card__header">
+        <h2>Property</h2>
+        <app-status-badge [status]="item.status" />
+      </div>
+      <dl class="card__body facts">
+        <div>
+          <dt>Type</dt>
+          <dd>{{ item.type | humanise }}</dd>
+        </div>
+        <div>
+          <dt>Bedrooms</dt>
+          <dd>{{ item.bedrooms }}</dd>
+        </div>
+        <div>
+          <dt>Bathrooms</dt>
+          <dd>{{ item.bathrooms }}</dd>
+        </div>
+        <div>
+          <dt>Car spaces</dt>
+          <dd>{{ item.carSpaces }}</dd>
+        </div>
+        @if (item.features.length) {
+          <div class="facts__wide">
+            <dt>Features</dt>
+            <dd>{{ item.features.join(', ') }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="card">
+      <div class="card__header">
+        <h2>Owners</h2>
+        <span class="muted">{{ ownership() }}% allocated</span>
+      </div>
+      @if (item.owners.length === 0) {
+        <app-state-note>No owners recorded yet.</app-state-note>
+      } @else {
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Owner</th>
+              <th scope="col" class="numeric">Share</th>
+              <th scope="col">Contact</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (owner of item.owners; track owner.ownerUserId) {
+              <tr>
+                <td class="mono">{{ owner.ownerUserId }}</td>
+                <td class="numeric">{{ owner.share }}%</td>
+                <td>{{ owner.isPrimaryContact ? 'Primary' : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    <section class="card wide">
+      <div class="card__header">
+        <h2>Management agreement</h2>
+        @if (canManage && !editingTerms()) {
+          <button type="button" class="button button--small" (click)="startEditingTerms()">
+            {{ hasAgreement() ? 'Amend terms' : 'Sign agreement' }}
+          </button>
+        }
+      </div>
+
+      <div class="card__body">
+        @if (editingTerms()) {
+          <form [formGroup]="termsForm" (ngSubmit)="saveTerms()" class="terms" novalidate>
+            <div class="field">
+              <label class="field__label" for="commissionRate">Management commission (%)</label>
+              <input id="commissionRate" type="number" step="0.1" min="0" max="20" formControlName="commissionRate" />
+              <span class="field__hint">GST is added to the fee, not to the rent (BR-10).</span>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="limit">Maintenance approval limit</label>
+              <input id="limit" type="number" step="10" min="0" formControlName="maintenanceApprovalLimit" />
+              <span class="field__hint">Work above this needs the owner's approval.</span>
+            </div>
+
+            @if (!hasAgreement()) {
+              <div class="field">
+                <label class="field__label" for="startDate">Start date</label>
+                <input id="startDate" type="date" formControlName="startDate" />
+              </div>
+            }
+
+            <div class="row row--end">
+              <button type="button" class="button button--quiet" (click)="editingTerms.set(false)">Cancel</button>
+              <button type="submit" class="button" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : hasAgreement() ? 'Amend terms' : 'Sign agreement' }}
+              </button>
+            </div>
+          </form>
+        } @else if (agreement.value(); as terms) {
+          <dl class="facts">
+            <div>
+              <dt>Commission</dt>
+              <dd>{{ terms.commissionRate }}%</dd>
+            </div>
+            <div>
+              <dt>Maintenance limit</dt>
+              <dd>{{ terms.maintenanceApprovalLimit | money }}</dd>
+            </div>
+            <div>
+              <dt>Started</dt>
+              <dd>{{ terms.startDate | auDate }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd><app-status-badge [status]="terms.status" /></dd>
+            </div>
+          </dl>
+        } @else {
+          <p class="muted">
+            No agreement yet. Until one is signed the property cannot be let, and there are no fee
+            terms for the rent to be split against.
+          </p>
+        }
+      </div>
+    </section>
+  </div>
+}

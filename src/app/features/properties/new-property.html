@@ -1,0 +1,82 @@
+<app-page-header heading="Add property" subheading="The address and configuration; owners and terms follow.">
+  <a class="button button--quiet" routerLink="/properties">Cancel</a>
+</app-page-header>
+
+<section class="card">
+  <div class="card__body">
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label class="field__label" for="unit">Unit</label>
+        <input id="unit" type="text" formControlName="unit" placeholder="Optional" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="streetNumber">Street number</label>
+        <input id="streetNumber" type="text" formControlName="streetNumber" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="street">Street</label>
+        <input id="street" type="text" formControlName="street" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="suburb">Suburb</label>
+        <input id="suburb" type="text" formControlName="suburb" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="state">State</label>
+        <select id="state" formControlName="state">
+          @for (state of states; track state) {
+            <option [value]="state">{{ state }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="postcode">Postcode</label>
+        <input id="postcode" type="text" inputmode="numeric" maxlength="4" formControlName="postcode" />
+        @if (form.controls.postcode.touched && form.controls.postcode.invalid) {
+          <span class="field__error">Four digits.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="type">Type</label>
+        <select id="type" formControlName="type">
+          @for (type of types; track type) {
+            <option [value]="type">{{ type }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="bedrooms">Bedrooms</label>
+        <input id="bedrooms" type="number" min="0" formControlName="bedrooms" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="bathrooms">Bathrooms</label>
+        <input id="bathrooms" type="number" min="0" formControlName="bathrooms" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="carSpaces">Car spaces</label>
+        <input id="carSpaces" type="number" min="0" formControlName="carSpaces" />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="features">Features</label>
+        <input id="features" type="text" formControlName="features" placeholder="Air conditioning, Balcony" />
+        <span class="field__hint">Separate with commas.</span>
+      </div>
+
+      <div class="row actions">
+        <button type="submit" class="button" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Add property' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</section>

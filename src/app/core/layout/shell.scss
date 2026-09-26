@@ -1,0 +1,150 @@
+.shell {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--brand-strong);
+  color: #dbe7e9;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0 8px;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #ffffff1f;
+  font-weight: 700;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+nav a {
+  display: block;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: #c3d6d9;
+  font-size: 0.9375rem;
+}
+
+nav a:hover {
+  background: #ffffff14;
+  color: #fff;
+  text-decoration: none;
+}
+
+nav a.is-active {
+  background: #ffffff24;
+  color: #fff;
+  font-weight: 500;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.who__avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-wash);
+  color: var(--brand-strong);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.who__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.who__text small {
+  font-size: 0.75rem;
+}
+
+.content {
+  padding: 24px;
+  max-width: 1280px;
+  width: 100%;
+}
+
+.menu-toggle {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .shell--menu-open .sidebar {
+    display: flex;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  .who__text {
+    display: none;
+  }
+}

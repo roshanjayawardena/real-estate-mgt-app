@@ -1,0 +1,57 @@
+<div class="shell" [class.shell--menu-open]="menuOpen()">
+  <aside class="sidebar">
+    <a class="brand" routerLink="/">
+      <span class="brand__mark" aria-hidden="true">K</span>
+      <span class="brand__name">Keyhouse</span>
+    </a>
+
+    <nav aria-label="Main">
+      <ul>
+        @for (item of items(); track item.route) {
+          <li>
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="is-active"
+              [routerLinkActiveOptions]="{ exact: item.route === '/tenancies' }"
+              (click)="menuOpen.set(false)"
+            >
+              {{ item.label }}
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button
+        type="button"
+        class="button button--quiet button--small menu-toggle"
+        [attr.aria-expanded]="menuOpen()"
+        aria-label="Toggle navigation"
+        (click)="menuOpen.set(!menuOpen())"
+      >
+        ☰
+      </button>
+
+      <div class="spacer"></div>
+
+      <div class="who">
+        <span class="who__avatar" aria-hidden="true">{{ initials() }}</span>
+        <span class="who__text">
+          <strong>{{ session.displayName() }}</strong>
+          <small class="muted">{{ session.role() }}</small>
+        </span>
+      </div>
+
+      <button type="button" class="button button--quiet button--small" (click)="signOut()">
+        Sign out
+      </button>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

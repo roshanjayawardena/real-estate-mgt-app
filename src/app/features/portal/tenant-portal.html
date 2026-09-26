@@ -1,0 +1,72 @@
+@if (tenancy.isLoading()) {
+  <app-state-note>Loading your tenancy…</app-state-note>
+} @else if (tenancy.error()) {
+  <app-state-note tone="bad">You do not have an active tenancy.</app-state-note>
+} @else if (tenancy.value(); as item) {
+  <app-page-header
+    heading="My tenancy"
+    [subheading]="(item.startDate | auDate) + ' to ' + (item.endDate | auDate) + ' · ' + (item.term | humanise)"
+  />
+
+  <div class="metrics">
+    <div class="card metric">
+      <span class="metric__label">Rent</span>
+      <strong class="metric__value">{{ item.amountPerCharge | money }}</strong>
+      <span class="muted">{{ item.frequency | humanise }} · {{ item.weeklyRent | money }} per week</span>
+    </div>
+
+    <div class="card metric" [class.metric--bad]="owing() > 0">
+      <span class="metric__label">{{ owing() > 0 ? 'You owe' : 'Balance' }}</span>
+      <strong class="metric__value">{{ owing() | money }}</strong>
+      <span class="muted">
+        {{ item.daysBehind ? item.daysBehind + ' days behind' : 'Thank you — you are up to date' }}
+      </span>
+    </div>
+
+    <div class="card metric">
+      <span class="metric__label">Rent paid to</span>
+      <strong class="metric__value">{{ item.paidToDate | auDate }}</strong>
+      <app-status-badge [status]="item.status" />
+    </div>
+  </div>
+
+  <div class="grid two">
+    @if (item.bond; as bond) {
+      <section class="card">
+        <div class="card__header">
+          <h2>Bond</h2>
+          <app-status-badge [status]="bond.status" />
+        </div>
+        <dl class="card__body facts">
+          <div><dt>Amount</dt><dd>{{ bond.amount | money }}</dd></div>
+          <div><dt>Received</dt><dd>{{ bond.receivedOn | auDate }}</dd></div>
+          <div><dt>Lodged</dt><dd>{{ bond.lodgedOn | auDate }}</dd></div>
+          <div><dt>Reference</dt><dd>{{ bond.lodgementReference ?? '—' }}</dd></div>
+        </dl>
+      </section>
+    }
+
+    @if (item.scheduledRentIncrease; as increase) {
+      <section class="card">
+        <div class="card__header"><h2>Rent increase</h2></div>
+        <div class="card__body">
+          <p>
+            Your rent becomes <strong>{{ increase.newWeeklyRent | money }}</strong> per week from
+            {{ increase.effectiveFrom | auDate }}.
+          </p>
+          <p class="muted">You were given notice on {{ increase.noticeGivenOn | auDate }}.</p>
+        </div>
+      </section>
+    }
+
+    @if (item.noticeToVacate; as notice) {
+      <section class="card">
+        <div class="card__header"><h2>Notice to vacate</h2></div>
+        <div class="card__body">
+          <p>The tenancy ends on <strong>{{ notice.vacateDate | auDate }}</strong>.</p>
+          <p class="muted">Notice given by the {{ notice.givenBy | humanise }} on {{ notice.receivedOn | auDate }}.</p>
+        </div>
+      </section>
+    }
+  </div>
+}

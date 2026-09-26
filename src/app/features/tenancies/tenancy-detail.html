@@ -1,0 +1,240 @@
+@if (tenancy.isLoading()) {
+  <app-state-note>Loading the tenancy…</app-state-note>
+} @else if (tenancy.error()) {
+  <app-state-note tone="bad">That tenancy could not be loaded.</app-state-note>
+} @else if (tenancy.value(); as item) {
+  <app-page-header
+    [heading]="property.value()?.address ?? 'Tenancy'"
+    [subheading]="(item.startDate | auDate) + ' to ' + (item.endDate | auDate) + ' · ' + (item.term | humanise)"
+  >
+    <a class="button button--quiet" [routerLink]="['/properties', item.propertyId]">Property</a>
+    @if (canManage && isRunning()) {
+      <button type="button" class="button button--quiet" (click)="open('renew')">Renew</button>
+      <button type="button" class="button button--quiet" (click)="open('notice')">Notice to vacate</button>
+      <button type="button" class="button button--danger" (click)="end()">End tenancy</button>
+    }
+  </app-page-header>
+
+  <div class="summary">
+    <div class="card metric">
+      <span class="metric__label">Rent</span>
+      <strong class="metric__value">{{ item.weeklyRent | money }}</strong>
+      <span class="muted">per week · {{ item.amountPerCharge | money }} {{ item.frequency | humanise }}</span>
+    </div>
+
+    <div class="card metric">
+      <span class="metric__label">Paid to</span>
+      <strong class="metric__value">{{ item.paidToDate | auDate }}</strong>
+      <span class="muted">{{ item.daysBehind ? item.daysBehind + ' days behind' : 'Up to date' }}</span>
+    </div>
+
+    <div class="card metric" [class.metric--bad]="item.amountOwing > 0">
+      <span class="metric__label">Owing</span>
+      <strong class="metric__value">{{ item.amountOwing | money }}</strong>
+      <app-status-badge [status]="item.arrearsStage" />
+    </div>
+
+    <div class="card metric">
+      <span class="metric__label">Status</span>
+      <strong class="metric__value"><app-status-badge [status]="item.status" /></strong>
+      @if (isDraft() && canManage) {
+        <button type="button" class="button button--small" [disabled]="working()" (click)="activate()">
+          Activate
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="grid layout">
+    <section class="card">
+      <div class="card__header">
+        <h2>Bond</h2>
+        @if (canManage) {
+          @if (!item.bond) {
+            <button type="button" class="button button--small" (click)="open('bond')">Record bond</button>
+          } @else if (!item.bond.lodgedOn) {
+            <button type="button" class="button button--small" (click)="open('lodge')">Record lodgement</button>
+          }
+        }
+      </div>
+
+      <div class="card__body">
+        @if (panel() === 'bond') {
+          <form [formGroup]="bondForm" (ngSubmit)="recordBond()" class="inline-form" novalidate>
+            <div class="field">
+              <label class="field__label" for="bondAmount">Amount received</label>
+              <input id="bondAmount" type="number" step="0.01" formControlName="amount" />
+              <span class="field__hint">NSW caps the bond at four weeks' rent.</span>
+            </div>
+            <div class="field">
+              <label class="field__label" for="bondReceived">Received on</label>
+              <input id="bondReceived" type="date" formControlName="receivedOn" />
+            </div>
+            <div class="row row--end actions">
+              <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
+              <button type="submit" class="button" [disabled]="working()">Record bond</button>
+            </div>
+          </form>
+        } @else if (panel() === 'lodge') {
+          <form [formGroup]="lodgeForm" (ngSubmit)="lodgeBond()" class="inline-form" novalidate>
+            <div class="field">
+              <label class="field__label" for="lodgedOn">Lodged on</label>
+              <input id="lodgedOn" type="date" formControlName="lodgedOn" />
+            </div>
+            <div class="field">
+              <label class="field__label" for="reference">Authority reference</label>
+              <input id="reference" type="text" formControlName="reference" placeholder="RBO-…" />
+            </div>
+            <div class="row row--end actions">
+              <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
+              <button type="submit" class="button" [disabled]="working()">Record lodgement</button>
+            </div>
+          </form>
+        } @else if (item.bond; as bond) {
+          <dl class="facts">
+            <div><dt>Amount</dt><dd>{{ bond.amount | money }}</dd></div>
+            <div><dt>Received</dt><dd>{{ bond.receivedOn | auDate }}</dd></div>
+            <div><dt>Lodge by</dt><dd>{{ bond.lodgementDueBy | auDate }}</dd></div>
+            <div><dt>Lodged</dt><dd>{{ bond.lodgedOn | auDate }}</dd></div>
+            <div><dt>Reference</dt><dd>{{ bond.lodgementReference ?? '—' }}</dd></div>
+            <div><dt>Status</dt><dd><app-status-badge [status]="bond.status" /></dd></div>
+          </dl>
+        } @else {
+          <p class="muted">No bond recorded. A tenancy cannot be activated until it is.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__header">
+        <h2>Rent increase</h2>
+        @if (canManage && isRunning() && !item.scheduledRentIncrease) {
+          <button type="button" class="button button--small" (click)="open('increase')">Schedule</button>
+        }
+      </div>
+
+      <div class="card__body">
+        @if (panel() === 'increase') {
+          @if (eligibility.value(); as rules) {
+            <p class="muted rules">
+              Earliest effective date {{ rules.earliestEffectiveDate | auDate }}, and notice must be
+              given by {{ rules.noticeBy | auDate }} — {{ rules.noticeDays }} days, once every
+              {{ rules.minimumMonthsBetweenIncreases }} months.
+            </p>
+          }
+
+          <form [formGroup]="increaseForm" (ngSubmit)="scheduleIncrease()" class="inline-form" novalidate>
+            <div class="field">
+              <label class="field__label" for="newRent">New weekly rent</label>
+              <input id="newRent" type="number" step="0.01" formControlName="newWeeklyRent" />
+            </div>
+            <div class="field">
+              <label class="field__label" for="effectiveFrom">Effective from</label>
+              <input id="effectiveFrom" type="date" formControlName="effectiveFrom" />
+            </div>
+            <div class="row row--end actions">
+              <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
+              <button type="submit" class="button" [disabled]="working()">Schedule increase</button>
+            </div>
+          </form>
+        } @else if (item.scheduledRentIncrease; as increase) {
+          <dl class="facts">
+            <div><dt>New rent</dt><dd>{{ increase.newWeeklyRent | money }}/wk</dd></div>
+            <div><dt>Effective</dt><dd>{{ increase.effectiveFrom | auDate }}</dd></div>
+            <div><dt>Notice given</dt><dd>{{ increase.noticeGivenOn | auDate }}</dd></div>
+          </dl>
+        } @else {
+          <p class="muted">No increase scheduled.</p>
+        }
+      </div>
+    </section>
+
+    @if (panel() === 'notice') {
+      <section class="card wide">
+        <div class="card__header"><h2>Notice to vacate</h2></div>
+        <div class="card__body">
+          <form [formGroup]="noticeForm" (ngSubmit)="giveNotice()" class="inline-form" novalidate>
+            <div class="field">
+              <label class="field__label" for="noticeReceived">Received on</label>
+              <input id="noticeReceived" type="date" formControlName="receivedOn" />
+            </div>
+            <div class="field">
+              <label class="field__label" for="vacateDate">Vacate date</label>
+              <input id="vacateDate" type="date" formControlName="vacateDate" />
+            </div>
+            <div class="field">
+              <label class="field__label" for="givenBy">Given by</label>
+              <select id="givenBy" formControlName="givenBy">
+                <option value="Tenant">Tenant</option>
+                <option value="Landlord">Landlord</option>
+              </select>
+            </div>
+            <div class="row row--end actions">
+              <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
+              <button type="submit" class="button" [disabled]="working()">Record notice</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    }
+
+    @if (panel() === 'renew') {
+      <section class="card wide">
+        <div class="card__header"><h2>Renew</h2></div>
+        <div class="card__body">
+          <form [formGroup]="renewForm" (ngSubmit)="renew()" class="inline-form" novalidate>
+            <div class="field">
+              <label class="field__label" for="newEndDate">New end date</label>
+              <input id="newEndDate" type="date" formControlName="newEndDate" />
+            </div>
+            <div class="row row--end actions">
+              <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
+              <button type="submit" class="button" [disabled]="working()">Extend term</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    }
+
+    @if (item.noticeToVacate; as notice) {
+      <section class="card wide notice">
+        <div class="card__body">
+          <strong>Ending {{ notice.vacateDate | auDate }}</strong>
+          <span class="muted">
+            Notice given by the {{ notice.givenBy | humanise }} on {{ notice.receivedOn | auDate }}.
+          </span>
+        </div>
+      </section>
+    }
+
+    <section class="card wide">
+      <div class="card__header">
+        <h2>Rent ledger</h2>
+        <div class="row">
+          @if (ledger.value(); as statement) {
+            <span class="muted">Balance {{ statement.balance | money }}</span>
+          }
+          @if (canRecordPayments && isRunning()) {
+            <button type="button" class="button button--small" (click)="open('payment')">Record payment</button>
+          }
+        </div>
+      </div>
+
+      @if (panel() === 'payment') {
+        <div class="card__body bordered">
+          <app-record-payment [tenancyId]="tenancyId()" (recorded)="onPaymentRecorded()" />
+        </div>
+      }
+
+      @if (ledger.isLoading()) {
+        <app-state-note>Loading the ledger…</app-state-note>
+      } @else if (ledger.error()) {
+        <app-state-note tone="bad">
+          No ledger for this tenancy yet. One is opened when the tenancy is activated.
+        </app-state-note>
+      } @else if (ledger.value(); as statement) {
+        <app-ledger-table [entries]="statement.entries" />
+      }
+    </section>
+  </div>
+}

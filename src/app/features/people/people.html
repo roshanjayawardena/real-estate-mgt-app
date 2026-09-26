@@ -1,0 +1,140 @@
+<app-page-header heading="People" [subheading]="total() + ' with a sign-in at this agency'">
+  @if (canInvite) {
+    <button type="button" class="button" (click)="inviting.set(!inviting())">
+      {{ inviting() ? 'Close' : 'Invite someone' }}
+    </button>
+  }
+</app-page-header>
+
+@if (inviting()) {
+  <section class="card spaced">
+    <div class="card__header"><h2>Invite</h2></div>
+    <div class="card__body">
+      <form [formGroup]="form" (ngSubmit)="invite()" novalidate>
+        <div class="field">
+          <label class="field__label" for="firstName">First name</label>
+          <input id="firstName" type="text" formControlName="firstName" />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="lastName">Last name</label>
+          <input id="lastName" type="text" formControlName="lastName" />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="email">Email</label>
+          <input id="email" type="email" formControlName="email" />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="role">Role</label>
+          <select id="role" formControlName="role">
+            @for (role of roles; track role) {
+              <option [value]="role">{{ role }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="row row--end wide">
+          <button type="submit" class="button" [disabled]="saving()">
+            {{ saving() ? 'Sending…' : 'Send invitation' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+}
+
+@if (canInvite && pending().length > 0) {
+  <section class="card spaced">
+    <div class="card__header">
+      <h2>Awaiting acceptance</h2>
+      <span class="muted">{{ pending().length }} invitation(s)</span>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Email</th>
+          <th scope="col">Role</th>
+          <th scope="col">Expires</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (invitation of pending(); track invitation.invitationId) {
+          <tr>
+            <td>{{ invitation.email }}</td>
+            <td>{{ invitation.role | humanise }}</td>
+            <td>{{ invitation.expiresAtUtc | auDate }}</td>
+            <td>
+              <app-status-badge [status]="invitation.hasExpired ? 'Overdue' : 'Pending'" />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}
+
+<section class="card">
+  <div class="card__header">
+    <div class="row filters">
+      <input
+        type="search"
+        placeholder="Search name or email"
+        [value]="search()"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search people"
+      />
+      <select [value]="roleFilter()" (change)="onRole($any($event.target).value)" aria-label="Filter by role">
+        <option value="">Any role</option>
+        @for (role of roles; track role) {
+          <option [value]="role">{{ role }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (people.isLoading()) {
+    <app-state-note>Loading people…</app-state-note>
+  } @else if (people.error()) {
+    <app-state-note tone="bad">The people list could not be loaded.</app-state-note>
+  } @else if (items().length === 0) {
+    <app-state-note>Nobody matches that.</app-state-note>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Role</th>
+          <th scope="col">Last signed in</th>
+          <th scope="col">User id</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (person of items(); track person.userId) {
+          <tr>
+            <td>
+              <strong>{{ person.fullName }}</strong>
+              @if (!person.isActive) {
+                <app-status-badge status="Suspended" />
+              }
+            </td>
+            <td>{{ person.email }}</td>
+            <td>{{ person.role | humanise }}</td>
+            <td class="muted">{{ person.lastLoginAtUtc ? (person.lastLoginAtUtc | auDate) : 'Never' }}</td>
+            <td>
+              <div class="row id-cell">
+                <code>{{ person.userId }}</code>
+                <button type="button" class="button button--quiet button--small" (click)="copyId(person.userId)">
+                  Copy
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

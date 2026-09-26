@@ -1,0 +1,63 @@
+<app-page-header
+  [heading]="'Good day, ' + session.displayName()"
+  subheading="Rent first, then the rest."
+>
+  <a class="button button--quiet" routerLink="/properties">Portfolio</a>
+  <a class="button" routerLink="/tenancies/arrears">Arrears board</a>
+</app-page-header>
+
+<div class="metrics">
+  <div class="card metric">
+    <span class="metric__label">Under management</span>
+    <strong class="metric__value">{{ leasedCount() + vacantCount() }}</strong>
+    <span class="muted">{{ leasedCount() }} leased · {{ vacantCount() }} vacant</span>
+  </div>
+
+  <div class="card metric">
+    <span class="metric__label">Occupancy</span>
+    <strong class="metric__value">{{ occupancy() }}%</strong>
+    <div class="bar" role="presentation"><span [style.width.%]="occupancy()"></span></div>
+  </div>
+
+  <div class="card metric" [class.metric--bad]="behindCount() > 0">
+    <span class="metric__label">In arrears</span>
+    <strong class="metric__value">{{ behindCount() }}</strong>
+    <span class="muted">{{ owed() | money }} owed on this page</span>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card__header">
+    <h2>Behind on rent</h2>
+    <a class="button button--quiet button--small" routerLink="/tenancies/arrears">See all</a>
+  </div>
+
+  @if (loading()) {
+    <app-state-note>Loading…</app-state-note>
+  } @else if (behind().length === 0) {
+    <app-state-note>Nobody is behind on rent.</app-state-note>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Tenancy</th>
+          <th scope="col">Paid to</th>
+          <th scope="col" class="numeric">Days behind</th>
+          <th scope="col" class="numeric">Owing</th>
+          <th scope="col">Stage</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (tenancy of behind(); track tenancy.id) {
+          <tr>
+            <td><a [routerLink]="['/tenancies', tenancy.id]">{{ tenancy.startDate | auDate }}</a></td>
+            <td>{{ tenancy.paidToDate | auDate }}</td>
+            <td class="numeric">{{ tenancy.daysBehind }}</td>
+            <td class="numeric">{{ tenancy.amountOwing | money }}</td>
+            <td><app-status-badge [status]="tenancy.arrearsStage" /></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

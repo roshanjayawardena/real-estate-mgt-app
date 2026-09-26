@@ -1,0 +1,68 @@
+<app-page-header heading="Properties" [subheading]="total() + ' under management'">
+  @if (canManage) {
+    <a class="button" routerLink="/properties/new">Add property</a>
+  }
+</app-page-header>
+
+<section class="card">
+  <div class="card__header">
+    <div class="row filters">
+      <input
+        type="search"
+        placeholder="Search address or suburb"
+        [value]="search()"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search properties"
+      />
+      <select [value]="status()" (change)="onStatus($any($event.target).value)" aria-label="Filter by status">
+        <option value="">Any status</option>
+        <option value="Vacant">Vacant</option>
+        <option value="Leased">Leased</option>
+        <option value="Archived">Archived</option>
+      </select>
+    </div>
+  </div>
+
+  @if (properties.isLoading()) {
+    <app-state-note>Loading the portfolio…</app-state-note>
+  } @else if (properties.error()) {
+    <app-state-note tone="bad">The portfolio could not be loaded.</app-state-note>
+  } @else if (items().length === 0) {
+    <app-state-note>No properties match that. Try a different search.</app-state-note>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Address</th>
+          <th scope="col">Suburb</th>
+          <th scope="col">Type</th>
+          <th scope="col">Configuration</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (property of items(); track property.id) {
+          <tr>
+            <td><a [routerLink]="['/properties', property.id]">{{ property.address }}</a></td>
+            <td>{{ property.suburb }}</td>
+            <td>{{ property.type | humanise }}</td>
+            <td class="muted">{{ property.summary }}</td>
+            <td><app-status-badge [status]="property.status" /></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="card__header pager">
+      <span class="muted">Page {{ page() }}</span>
+      <div class="row">
+        <button class="button button--quiet button--small" [disabled]="!hasPrevious()" (click)="step(-1)">
+          Previous
+        </button>
+        <button class="button button--quiet button--small" [disabled]="!hasNext()" (click)="step(1)">
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</section>

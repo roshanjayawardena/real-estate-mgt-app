@@ -1,0 +1,85 @@
+@if (arrearsOnly()) {
+  <app-page-header
+    heading="Arrears"
+    [subheading]="total() + ' tenancies behind, ' + (owed() | money) + ' owed on this page'"
+  >
+    <a class="button button--quiet" routerLink="/tenancies">All tenancies</a>
+  </app-page-header>
+} @else {
+  <app-page-header heading="Tenancies" [subheading]="total() + ' on the books'">
+    <a class="button button--quiet" routerLink="/tenancies/arrears">Arrears board</a>
+    @if (canManage) {
+      <a class="button" routerLink="/tenancies/new">New tenancy</a>
+    }
+  </app-page-header>
+}
+
+<section class="card">
+  @if (!arrearsOnly()) {
+    <div class="card__header">
+      <select [value]="status()" (change)="onStatus($any($event.target).value)" aria-label="Filter by status">
+        <option value="">Any status</option>
+        <option value="Draft">Draft</option>
+        <option value="Active">Active</option>
+        <option value="Ending">Ending</option>
+        <option value="Ended">Ended</option>
+      </select>
+    </div>
+  }
+
+  @if (tenancies.isLoading()) {
+    <app-state-note>Loading tenancies…</app-state-note>
+  } @else if (tenancies.error()) {
+    <app-state-note tone="bad">The tenancies could not be loaded.</app-state-note>
+  } @else if (items().length === 0) {
+    <app-state-note>
+      {{ arrearsOnly() ? 'Nobody is behind on rent. A good morning.' : 'No tenancies yet.' }}
+    </app-state-note>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Tenancy</th>
+          <th scope="col" class="numeric">Rent</th>
+          <th scope="col">Paid to</th>
+          <th scope="col" class="numeric">Behind</th>
+          <th scope="col" class="numeric">Owing</th>
+          <th scope="col">Arrears</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (tenancy of items(); track tenancy.id) {
+          <tr>
+            <td>
+              <a [routerLink]="['/tenancies', tenancy.id]">
+                {{ tenancy.startDate | auDate }} – {{ tenancy.endDate | auDate }}
+              </a>
+            </td>
+            <td class="numeric">
+              {{ tenancy.weeklyRent | money }}
+              <small class="muted">/wk {{ tenancy.frequency | humanise }}</small>
+            </td>
+            <td>{{ tenancy.paidToDate | auDate }}</td>
+            <td class="numeric">{{ tenancy.daysBehind ? tenancy.daysBehind + ' days' : '—' }}</td>
+            <td class="numeric">{{ tenancy.amountOwing | money }}</td>
+            <td><app-status-badge [status]="tenancy.arrearsStage" /></td>
+            <td><app-status-badge [status]="tenancy.status" /></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="card__header">
+      <span class="muted">Page {{ page() }}</span>
+      <div class="row">
+        <button class="button button--quiet button--small" [disabled]="!hasPrevious()" (click)="step(-1)">
+          Previous
+        </button>
+        <button class="button button--quiet button--small" [disabled]="!hasNext()" (click)="step(1)">
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</section>

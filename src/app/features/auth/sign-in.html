@@ -1,0 +1,54 @@
+<div class="page">
+  <section class="panel card">
+    <div class="card__body">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true">K</span>
+        <span>Keyhouse</span>
+      </div>
+
+      <h1>Sign in</h1>
+      <p class="muted lead">Property management for Australian residential agencies.</p>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="field">
+          <label class="field__label" for="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            autocomplete="username"
+            formControlName="email"
+            [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+          />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <span class="field__error">Enter the email address you were invited with.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            autocomplete="current-password"
+            formControlName="password"
+            [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="agencyId">Agency</label>
+          <input id="agencyId" type="text" formControlName="agencyId" placeholder="Agency id" />
+          <span class="field__hint">Leave blank if you are the platform administrator.</span>
+        </div>
+
+        @if (failure(); as message) {
+          <p class="failure" role="alert">{{ message }}</p>
+        }
+
+        <button type="submit" class="button submit" [disabled]="submitting()">
+          {{ submitting() ? 'Signing in…' : 'Sign in' }}
+        </button>
+      </form>
+    </div>
+  </section>
+</div>
