@@ -1,3 +1,5 @@
+import { HttpErrorResponse } from '@angular/common/http';
+
 import { environment } from '../../../environments/environment';
 
 /** Every request goes through here, so the base URL is decided in exactly one place. */
@@ -36,6 +38,34 @@ export function describeProblem(problem: ProblemDetails | null | undefined, fall
   }
 
   return problem.detail ?? problem.title ?? fallback;
+}
+
+/**
+ * What a form shows when its request failed.
+ *
+ * The error interceptor deliberately leaves 400 alone so the form that caused it can put the
+ * message where the person is looking. This is how a form does that: one sentence, from the
+ * server's own words where it has them.
+ */
+export function describeFailure(error: unknown, fallback = 'That did not work.'): string {
+  if (!(error instanceof HttpErrorResponse)) {
+    return fallback;
+  }
+
+  if (error.status === 0) {
+    return 'The API did not respond. Check that it is running.';
+  }
+
+  if (error.status === 403) {
+    return describeProblem(error.error as ProblemDetails, 'You do not have access to that.');
+  }
+
+  if (error.status >= 500) {
+    return 'Something went wrong on the server. The error has been logged.';
+  }
+
+  // 400 carries a field map, 409 and 422 carry a business rule; both read well as a sentence.
+  return describeProblem(error.error as ProblemDetails, fallback);
 }
 
 /** Every list endpoint pages (NFR-13). */

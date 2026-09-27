@@ -42,6 +42,9 @@
           Activate
         </button>
       }
+      @if (panel() === null) {
+        <app-form-error [message]="failure()" />
+      }
     </div>
   </div>
 
@@ -70,6 +73,8 @@
               <label class="field__label" for="bondReceived">Received on</label>
               <input id="bondReceived" type="date" formControlName="receivedOn" />
             </div>
+            <app-form-error [message]="failure()" />
+
             <div class="row row--end actions">
               <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
               <button type="submit" class="button" [disabled]="working()">Record bond</button>
@@ -85,6 +90,8 @@
               <label class="field__label" for="reference">Authority reference</label>
               <input id="reference" type="text" formControlName="reference" placeholder="RBO-…" />
             </div>
+            <app-form-error [message]="failure()" />
+
             <div class="row row--end actions">
               <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
               <button type="submit" class="button" [disabled]="working()">Record lodgement</button>
@@ -132,6 +139,8 @@
               <label class="field__label" for="effectiveFrom">Effective from</label>
               <input id="effectiveFrom" type="date" formControlName="effectiveFrom" />
             </div>
+            <app-form-error [message]="failure()" />
+
             <div class="row row--end actions">
               <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
               <button type="submit" class="button" [disabled]="working()">Schedule increase</button>
@@ -169,6 +178,8 @@
                 <option value="Landlord">Landlord</option>
               </select>
             </div>
+            <app-form-error [message]="failure()" />
+
             <div class="row row--end actions">
               <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
               <button type="submit" class="button" [disabled]="working()">Record notice</button>
@@ -187,6 +198,8 @@
               <label class="field__label" for="newEndDate">New end date</label>
               <input id="newEndDate" type="date" formControlName="newEndDate" />
             </div>
+            <app-form-error [message]="failure()" />
+
             <div class="row row--end actions">
               <button type="button" class="button button--quiet" (click)="panel.set(null)">Cancel</button>
               <button type="submit" class="button" [disabled]="working()">Extend term</button>

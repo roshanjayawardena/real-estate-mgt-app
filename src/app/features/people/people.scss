@@ -32,3 +32,21 @@ code {
 td strong + app-status-badge {
   margin-left: 8px;
 }
+
+.link-panel {
+  border-left: 3px solid var(--brand);
+}
+
+.link-panel h2 {
+  margin-bottom: 4px;
+}
+
+.link-panel p {
+  margin: 0 0 12px;
+}
+
+.link {
+  flex: 1;
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+}

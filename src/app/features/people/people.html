@@ -35,12 +35,35 @@
           </select>
         </div>
 
+        <div class="wide">
+          <app-form-error [message]="failure()" />
+        </div>
+
         <div class="row row--end wide">
           <button type="submit" class="button" [disabled]="saving()">
             {{ saving() ? 'Sending…' : 'Send invitation' }}
           </button>
         </div>
       </form>
+    </div>
+  </section>
+}
+
+@if (lastLink(); as link) {
+  <section class="card spaced link-panel">
+    <div class="card__body">
+      <h2>Invitation link for {{ link.email }}</h2>
+      <p class="muted">
+        Send this to them. It is shown once — the database keeps only a hash of the token, so it
+        cannot be recovered afterwards. In production this arrives by email instead.
+      </p>
+      <div class="row">
+        <code class="link">{{ link.url }}</code>
+        <button type="button" class="button button--small" (click)="copyLink(link.url)">Copy link</button>
+        <button type="button" class="button button--quiet button--small" (click)="lastLink.set(null)">
+          Dismiss
+        </button>
+      </div>
     </div>
   </section>
 }

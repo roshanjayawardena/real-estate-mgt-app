@@ -4,11 +4,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
-import { PagedList, apiUrl } from '../../core/api/api';
+import { PagedList, apiUrl, describeFailure } from '../../core/api/api';
 import { ToastStore } from '../../core/notifications/toast.store';
 import { PropertyListItem } from '../properties/properties.api';
 import { today } from '../../shared/format';
-import { PageHeader } from '../../shared/page';
+import { FormError, PageHeader } from '../../shared/page';
+import { UserSelect } from '../../shared/user-select';
 import { TenanciesService, paymentFrequencies } from './tenancies.api';
 
 /**
@@ -17,7 +18,7 @@ import { TenanciesService, paymentFrequencies } from './tenancies.api';
  */
 @Component({
   selector: 'app-new-tenancy',
-  imports: [ReactiveFormsModule, RouterLink, PageHeader],
+  imports: [ReactiveFormsModule, RouterLink, PageHeader, FormError, UserSelect],
   templateUrl: './new-tenancy.html',
   styles: `
     form {
@@ -38,17 +39,22 @@ export class NewTenancy {
 
   protected readonly frequencies = paymentFrequencies;
   protected readonly saving = signal(false);
+  protected readonly failure = signal<string | null>(null);
 
-  /** Only a vacant, managed property can be let, so that is all this list offers. */
+  /**
+   * Vacant *and* managed. Leasing refuses a tenancy on a property with no active agreement, so
+   * offering one here would only produce a 422 two clicks later.
+   */
   protected readonly properties = httpResource<PagedList<PropertyListItem>>(() =>
-    apiUrl('/api/v1/properties?status=Vacant&pageSize=100'),
+    apiUrl('/api/v1/properties?status=Vacant&managedOnly=true&pageSize=100'),
   );
 
   protected readonly options = computed(() => this.properties.value()?.items ?? []);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     propertyId: ['', [Validators.required]],
-    tenantUserIds: ['', [Validators.required]],
+    // Ids, chosen by name in the picker. Angular's required rejects an empty array.
+    tenantUserIds: [[] as string[], [Validators.required]],
     startDate: [today(), [Validators.required]],
     endDate: ['', [Validators.required]],
     weeklyRent: [0, [Validators.required, Validators.min(0.01)]],
@@ -56,30 +62,33 @@ export class NewTenancy {
   });
 
   protected async submit(): Promise<void> {
-    if (this.form.invalid || this.saving()) {
+    if (this.saving()) {
+      return;
+    }
+
+    // Touch everything so the messages appear, and say so above the button: a click that silently
+    // does nothing reads as a broken page.
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.failure.set('Check the highlighted fields and try again.');
 
       return;
     }
 
     this.saving.set(true);
+    this.failure.set(null);
     const value = this.form.getRawValue();
 
     try {
       const created = await firstValueFrom(
-        this.tenancies.create({
-          ...value,
-          tenantUserIds: value.tenantUserIds
-            .split(',')
-            .map((id) => id.trim())
-            .filter(Boolean),
-        }),
+        this.tenancies.create(value),
       );
 
       this.toasts.success('Draft tenancy created. Record the bond, then activate it.');
       await this.router.navigate(['/tenancies', created.id]);
-    } catch {
-      // Announced by the error interceptor.
+    } catch (error) {
+      // 400 never reaches a toast, by design — the form is where the message belongs.
+      this.failure.set(describeFailure(error, 'The tenancy could not be created.'));
     } finally {
       this.saving.set(false);
     }

@@ -2,8 +2,10 @@ import { Component, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { describeFailure } from '../../core/api/api';
 import { ToastStore } from '../../core/notifications/toast.store';
 import { MoneyPipe, today } from '../../shared/format';
+import { FormError } from '../../shared/page';
 import { PaymentsService, Receipt, paymentMethods } from './payments.api';
 
 /**
@@ -15,7 +17,7 @@ import { PaymentsService, Receipt, paymentMethods } from './payments.api';
  */
 @Component({
   selector: 'app-record-payment',
-  imports: [ReactiveFormsModule, MoneyPipe],
+  imports: [ReactiveFormsModule, MoneyPipe, FormError],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="field">
@@ -35,6 +37,10 @@ import { PaymentsService, Receipt, paymentMethods } from './payments.api';
       <div class="field">
         <label class="field__label" for="paidOn">Received on</label>
         <input id="paidOn" type="date" formControlName="paidOn" />
+      </div>
+
+      <div class="actions">
+        <app-form-error [message]="failure()" />
       </div>
 
       <div class="row row--end actions">
@@ -112,6 +118,7 @@ export class RecordPayment {
   protected readonly methods = paymentMethods;
   protected readonly saving = signal(false);
   protected readonly receipt = signal<Receipt | null>(null);
+  protected readonly failure = signal<string | null>(null);
 
   private idempotencyKey = crypto.randomUUID();
 
@@ -122,13 +129,19 @@ export class RecordPayment {
   });
 
   protected async submit(): Promise<void> {
-    if (this.form.invalid || this.saving()) {
+    if (this.saving()) {
+      return;
+    }
+
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.failure.set('Enter an amount greater than zero and the date it arrived.');
 
       return;
     }
 
     this.saving.set(true);
+    this.failure.set(null);
     const { amount, method, paidOn } = this.form.getRawValue();
 
     try {
@@ -144,9 +157,10 @@ export class RecordPayment {
       this.idempotencyKey = crypto.randomUUID();
       this.form.patchValue({ amount: 0 });
       this.form.markAsUntouched();
-    } catch {
-      // Announced by the error interceptor. The key is kept, so pressing again retries the same
-      // payment rather than starting a second one.
+    } catch (error) {
+      // The key is kept, so pressing again retries this payment rather than starting a second one.
+      // A refusal here is usually the rent-in-advance ceiling, and its message says the limit.
+      this.failure.set(describeFailure(error, 'The payment could not be recorded.'));
     } finally {
       this.saving.set(false);
     }

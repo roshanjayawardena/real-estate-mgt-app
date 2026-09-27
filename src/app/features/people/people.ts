@@ -3,12 +3,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
-import { PagedList, apiUrl } from '../../core/api/api';
+import { PagedList, apiUrl, describeFailure } from '../../core/api/api';
 import { Permissions } from '../../core/auth/auth.model';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastStore } from '../../core/notifications/toast.store';
 import { AuDatePipe, HumanisePipe } from '../../shared/format';
-import { PageHeader, StateNote } from '../../shared/page';
+import { FormError, PageHeader, StateNote } from '../../shared/page';
 import { StatusBadge } from '../../shared/status-badge';
 
 export interface Person {
@@ -28,6 +28,17 @@ export interface PendingInvitation {
   readonly hasExpired: boolean;
 }
 
+interface InvitationSent {
+  readonly invitationId: string;
+  readonly expiresAtUtc: string;
+  /**
+   * Only outside production, and only in this one response: the database keeps a hash, so once
+   * this is gone the link cannot be recovered. It exists because Notifications — the module that
+   * emails it — is Phase 2.
+   */
+  readonly acceptUrl: string | null;
+}
+
 /**
  * IDN-03 and IDN-05. The agency's people: who can sign in, and who has been asked to.
  *
@@ -37,7 +48,7 @@ export interface PendingInvitation {
  */
 @Component({
   selector: 'app-people',
-  imports: [ReactiveFormsModule, PageHeader, StateNote, StatusBadge, AuDatePipe, HumanisePipe],
+  imports: [ReactiveFormsModule, PageHeader, StateNote, StatusBadge, AuDatePipe, HumanisePipe, FormError],
   templateUrl: './people.html',
   styleUrl: './people.scss',
 })
@@ -51,6 +62,10 @@ export class People {
 
   protected readonly inviting = signal(false);
   protected readonly saving = signal(false);
+  protected readonly failure = signal<string | null>(null);
+
+  /** The link from the last invitation, shown until it is sent or the page is left. */
+  protected readonly lastLink = signal<{ email: string; url: string } | null>(null);
   protected readonly roleFilter = signal('');
   protected readonly search = signal('');
 
@@ -86,36 +101,62 @@ export class People {
   });
 
   protected async invite(): Promise<void> {
-    if (this.form.invalid || this.saving()) {
+    if (this.saving()) {
+      return;
+    }
+
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.failure.set('A first name, last name and email address are needed.');
 
       return;
     }
 
     this.saving.set(true);
+    this.failure.set(null);
+    const { email, role } = this.form.getRawValue();
 
     try {
-      await firstValueFrom(
-        this.http.post(apiUrl('/api/v1/invitations'), { ...this.form.getRawValue(), linkedEntityId: null }),
+      const sent = await firstValueFrom(
+        this.http.post<InvitationSent>(apiUrl('/api/v1/invitations'), {
+          ...this.form.getRawValue(),
+          linkedEntityId: null,
+        }),
       );
 
-      // Notifications sends the email; until that module exists the invitation is visible here and
-      // the link has to be handed over another way.
-      this.toasts.success('Invitation sent. It is valid for seven days.');
-      this.form.reset({ role: this.form.getRawValue().role });
+      // Notifications is what emails the link. Until it exists the API hands it back here, once,
+      // and it has to be passed on by hand.
+      this.lastLink.set(sent.acceptUrl ? { email, url: sent.acceptUrl } : null);
+
+      this.toasts.success(
+        sent.acceptUrl
+          ? `Invitation created for ${email}. Copy the link below — it is shown only now.`
+          : `Invitation emailed to ${email}. It is valid for seven days.`,
+      );
+
+      this.form.reset({ role });
       this.inviting.set(false);
       this.invitations.reload();
-    } catch {
-      // Announced by the error interceptor.
+    } catch (error) {
+      // The common refusal is an email that already has an account at this agency.
+      this.failure.set(describeFailure(error, 'The invitation could not be sent.'));
     } finally {
       this.saving.set(false);
     }
   }
 
   protected async copyId(userId: string): Promise<void> {
+    await this.copy(userId, 'User id copied.');
+  }
+
+  protected async copyLink(url: string): Promise<void> {
+    await this.copy(url, 'Invitation link copied.');
+  }
+
+  private async copy(value: string, confirmation: string): Promise<void> {
     try {
-      await navigator.clipboard.writeText(userId);
-      this.toasts.info('User id copied.');
+      await navigator.clipboard.writeText(value);
+      this.toasts.info(confirmation);
     } catch {
       this.toasts.error('The clipboard is not available here.');
     }

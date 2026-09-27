@@ -13,16 +13,25 @@
       <div class="field">
         <label class="field__label" for="streetNumber">Street number</label>
         <input id="streetNumber" type="text" formControlName="streetNumber" />
+        @if (form.controls.streetNumber.touched && form.controls.streetNumber.invalid) {
+          <span class="field__error">Required.</span>
+        }
       </div>
 
       <div class="field">
         <label class="field__label" for="street">Street</label>
         <input id="street" type="text" formControlName="street" />
+        @if (form.controls.street.touched && form.controls.street.invalid) {
+          <span class="field__error">Required.</span>
+        }
       </div>
 
       <div class="field">
         <label class="field__label" for="suburb">Suburb</label>
         <input id="suburb" type="text" formControlName="suburb" />
+        @if (form.controls.suburb.touched && form.controls.suburb.invalid) {
+          <span class="field__error">Required.</span>
+        }
       </div>
 
       <div class="field">
@@ -70,6 +79,10 @@
         <label class="field__label" for="features">Features</label>
         <input id="features" type="text" formControlName="features" placeholder="Air conditioning, Balcony" />
         <span class="field__hint">Separate with commas.</span>
+      </div>
+
+      <div class="actions">
+        <app-form-error [message]="failure()" />
       </div>
 
       <div class="row actions">

@@ -3,14 +3,15 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
+import { describeFailure } from '../../core/api/api';
 import { ToastStore } from '../../core/notifications/toast.store';
-import { PageHeader } from '../../shared/page';
+import { FormError, PageHeader } from '../../shared/page';
 import { PropertiesService, australianStates, propertyTypes } from './properties.api';
 
 /** PRP-01. Adding a property to the portfolio. Owners and terms come next, on the detail screen. */
 @Component({
   selector: 'app-new-property',
-  imports: [ReactiveFormsModule, RouterLink, PageHeader],
+  imports: [ReactiveFormsModule, RouterLink, PageHeader, FormError],
   templateUrl: './new-property.html',
   styles: `
     form {
@@ -33,6 +34,7 @@ export class NewProperty {
   protected readonly types = propertyTypes;
   protected readonly states = australianStates;
   protected readonly saving = signal(false);
+  protected readonly failure = signal<string | null>(null);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     unit: [''],
@@ -50,13 +52,19 @@ export class NewProperty {
   });
 
   protected async submit(): Promise<void> {
-    if (this.form.invalid || this.saving()) {
+    if (this.saving()) {
+      return;
+    }
+
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.failure.set('Check the highlighted fields and try again.');
 
       return;
     }
 
     this.saving.set(true);
+    this.failure.set(null);
     const value = this.form.getRawValue();
 
     try {
@@ -73,8 +81,8 @@ export class NewProperty {
 
       this.toasts.success('Property added. Record the owners and sign the agreement next.');
       await this.router.navigate(['/properties', created.id]);
-    } catch {
-      // Announced by the error interceptor.
+    } catch (error) {
+      this.failure.set(describeFailure(error, 'The property could not be added.'));
     } finally {
       this.saving.set(false);
     }

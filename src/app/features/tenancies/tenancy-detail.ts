@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
 
-import { apiUrl } from '../../core/api/api';
+import { apiUrl, describeFailure } from '../../core/api/api';
 import { Permissions } from '../../core/auth/auth.model';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastStore } from '../../core/notifications/toast.store';
@@ -13,7 +13,7 @@ import { LedgerStatement } from '../payments/payments.api';
 import { RecordPayment } from '../payments/record-payment';
 import { Property } from '../properties/properties.api';
 import { AuDatePipe, HumanisePipe, MoneyPipe, today } from '../../shared/format';
-import { PageHeader, StateNote } from '../../shared/page';
+import { FormError, PageHeader, StateNote } from '../../shared/page';
 import { StatusBadge } from '../../shared/status-badge';
 import { RentIncreaseEligibility, Tenancy, TenanciesService } from './tenancies.api';
 
@@ -34,6 +34,7 @@ type Panel = 'bond' | 'lodge' | 'increase' | 'notice' | 'renew' | 'payment' | nu
     ReactiveFormsModule,
     PageHeader,
     StateNote,
+    FormError,
     StatusBadge,
     LedgerTable,
     RecordPayment,
@@ -57,6 +58,7 @@ export class TenancyDetail {
   protected readonly canRecordPayments = this.session.has(Permissions.paymentsRecord);
   protected readonly panel = signal<Panel>(null);
   protected readonly working = signal(false);
+  protected readonly failure = signal<string | null>(null);
 
   protected readonly tenancy = httpResource<Tenancy>(() => apiUrl(`/api/v1/tenancies/${this.tenancyId()}`));
 
@@ -110,6 +112,7 @@ export class TenancyDetail {
   });
 
   protected open(panel: Panel): void {
+    this.failure.set(null);
     this.panel.set(this.panel() === panel ? null : panel);
 
     if (panel === 'increase') {
@@ -128,6 +131,7 @@ export class TenancyDetail {
     }
 
     this.working.set(true);
+    this.failure.set(null);
 
     try {
       await firstValueFrom(work);
@@ -135,8 +139,10 @@ export class TenancyDetail {
       this.toasts.success(message);
       this.panel.set(null);
       this.tenancy.reload();
-    } catch {
-      // Announced by the error interceptor, and the panel stays open to be corrected.
+    } catch (error) {
+      // The panel stays open with the reason on it: a refused bond or a rent increase that is too
+      // soon is something the person can correct in place.
+      this.failure.set(describeFailure(error, 'That could not be saved.'));
     } finally {
       this.working.set(false);
     }
@@ -149,6 +155,7 @@ export class TenancyDetail {
   protected recordBond(): void {
     if (this.bondForm.invalid) {
       this.bondForm.markAllAsTouched();
+      this.failure.set('Enter the bond amount and the date it was received.');
 
       return;
     }
@@ -164,6 +171,7 @@ export class TenancyDetail {
   protected lodgeBond(): void {
     if (this.lodgeForm.invalid) {
       this.lodgeForm.markAllAsTouched();
+      this.failure.set('Enter the lodgement date and the authority reference.');
 
       return;
     }
@@ -176,6 +184,7 @@ export class TenancyDetail {
   protected scheduleIncrease(): void {
     if (this.increaseForm.invalid) {
       this.increaseForm.markAllAsTouched();
+      this.failure.set('Enter the new weekly rent and the date it takes effect.');
 
       return;
     }
@@ -191,6 +200,7 @@ export class TenancyDetail {
   protected giveNotice(): void {
     if (this.noticeForm.invalid) {
       this.noticeForm.markAllAsTouched();
+      this.failure.set('Enter both dates and who gave notice.');
 
       return;
     }
@@ -204,6 +214,7 @@ export class TenancyDetail {
   protected renew(): void {
     if (this.renewForm.invalid) {
       this.renewForm.markAllAsTouched();
+      this.failure.set('Enter the new end date.');
 
       return;
     }

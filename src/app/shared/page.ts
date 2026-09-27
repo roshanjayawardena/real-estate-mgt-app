@@ -34,6 +34,32 @@ export class PageHeader {
   readonly subheading = input<string>();
 }
 
+/**
+ * Why a form did not go through. Shown above the submit button, where the person is already
+ * looking, rather than as a toast in the corner they have to catch.
+ */
+@Component({
+  selector: 'app-form-error',
+  template: `
+    @if (message()) {
+      <p class="failure" role="alert">{{ message() }}</p>
+    }
+  `,
+  styles: `
+    .failure {
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bad-wash);
+      color: var(--bad);
+      font-size: 0.9375rem;
+    }
+  `,
+})
+export class FormError {
+  readonly message = input<string | null>(null);
+}
+
 /** Loading, failed and empty all look the same to a person: nothing is there yet, and here is why. */
 @Component({
   selector: 'app-state-note',

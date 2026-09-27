@@ -41,6 +41,49 @@
   gap: 0 20px;
 }
 
+.owner-row {
+  display: grid;
+  grid-template-columns: 1fr 110px auto auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.owner-row .field {
+  margin-bottom: 8px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  padding-bottom: 16px;
+}
+
+.check input {
+  width: auto;
+}
+
+.total {
+  margin: 4px 0 12px;
+}
+
+.total--bad {
+  color: var(--bad);
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .owner-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
 .terms .row--end {
   grid-column: 1 / -1;
 }
