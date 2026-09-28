@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
-import { PagedList, apiUrl, describeFailure } from '../../core/api/api';
+import { PagedList, apiUrl, describeFailure, valueOrNull } from '../../core/api/api';
 import { ToastStore } from '../../core/notifications/toast.store';
 import { PropertyListItem } from '../properties/properties.api';
 import { today } from '../../shared/format';
@@ -49,7 +49,7 @@ export class NewTenancy {
     apiUrl('/api/v1/properties?status=Vacant&managedOnly=true&pageSize=100'),
   );
 
-  protected readonly options = computed(() => this.properties.value()?.items ?? []);
+  protected readonly options = computed(() => valueOrNull(this.properties)?.items ?? []);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     propertyId: ['', [Validators.required]],

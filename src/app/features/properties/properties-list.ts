@@ -2,7 +2,7 @@ import { httpResource } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { PagedList, apiUrl } from '../../core/api/api';
+import { PagedList, apiUrl, valueOrNull } from '../../core/api/api';
 import { Permissions } from '../../core/auth/auth.model';
 import { SessionStore } from '../../core/auth/session.store';
 import { HumanisePipe } from '../../shared/format';
@@ -43,10 +43,10 @@ export class PropertiesList {
     return apiUrl(`/api/v1/properties?${parameters}`);
   });
 
-  protected readonly items = computed(() => this.properties.value()?.items ?? []);
-  protected readonly total = computed(() => this.properties.value()?.total ?? 0);
-  protected readonly hasPrevious = computed(() => this.properties.value()?.hasPrevious ?? false);
-  protected readonly hasNext = computed(() => this.properties.value()?.hasNext ?? false);
+  protected readonly items = computed(() => valueOrNull(this.properties)?.items ?? []);
+  protected readonly total = computed(() => valueOrNull(this.properties)?.total ?? 0);
+  protected readonly hasPrevious = computed(() => valueOrNull(this.properties)?.hasPrevious ?? false);
+  protected readonly hasNext = computed(() => valueOrNull(this.properties)?.hasNext ?? false);
 
   protected onSearch(value: string): void {
     this.page.set(1);

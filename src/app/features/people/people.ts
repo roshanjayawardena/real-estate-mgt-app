@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
-import { PagedList, apiUrl, describeFailure } from '../../core/api/api';
+import { PagedList, apiUrl, describeFailure, valueOrNull } from '../../core/api/api';
 import { Permissions } from '../../core/auth/auth.model';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastStore } from '../../core/notifications/toast.store';
@@ -89,9 +89,9 @@ export class People {
     { defaultValue: [] },
   );
 
-  protected readonly items = computed(() => this.people.value()?.items ?? []);
-  protected readonly total = computed(() => this.people.value()?.total ?? 0);
-  protected readonly pending = computed(() => this.invitations.value());
+  protected readonly items = computed(() => valueOrNull(this.people)?.items ?? []);
+  protected readonly total = computed(() => valueOrNull(this.people)?.total ?? 0);
+  protected readonly pending = computed(() => valueOrNull(this.invitations) ?? []);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

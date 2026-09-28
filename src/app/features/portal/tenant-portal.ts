@@ -2,7 +2,7 @@ import { httpResource } from '@angular/common/http';
 import { Component, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { apiUrl } from '../../core/api/api';
+import { apiUrl, valueOrNull } from '../../core/api/api';
 import { LedgerTable } from '../payments/ledger-table';
 import { LedgerStatement } from '../payments/payments.api';
 import { Tenancy } from '../tenancies/tenancies.api';
@@ -25,7 +25,9 @@ import { StatusBadge } from '../../shared/status-badge';
 export class TenantPortal {
   protected readonly tenancy = httpResource<Tenancy>(() => apiUrl('/api/v1/portal/tenancy'));
 
-  protected readonly owing = computed(() => this.tenancy.value()?.amountOwing ?? 0);
+  protected readonly item = computed(() => valueOrNull(this.tenancy));
+
+  protected readonly owing = computed(() => this.item()?.amountOwing ?? 0);
 }
 
 /** The same ledger the agency sees, from the renter's side. */
@@ -38,7 +40,7 @@ export class TenantPortal {
     </app-page-header>
 
     <section class="card">
-      @if (ledger.value(); as statement) {
+      @if (statement(); as statement) {
         <div class="card__header">
           <h2>Statement</h2>
           <strong>Balance {{ statement.balance | money }}</strong>
@@ -54,4 +56,6 @@ export class TenantPortal {
 })
 export class TenantLedger {
   protected readonly ledger = httpResource<LedgerStatement>(() => apiUrl('/api/v1/portal/ledger'));
+
+  protected readonly statement = computed(() => valueOrNull(this.ledger));
 }

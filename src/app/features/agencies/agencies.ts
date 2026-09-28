@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
-import { PagedList, apiUrl } from '../../core/api/api';
+import { PagedList, apiUrl, valueOrNull } from '../../core/api/api';
 import { ToastStore } from '../../core/notifications/toast.store';
 import { AuDatePipe } from '../../shared/format';
 import { PageHeader, StateNote } from '../../shared/page';
@@ -65,7 +65,7 @@ export class Agencies {
     apiUrl('/api/v1/agencies?pageSize=50'),
   );
 
-  protected readonly items = computed(() => this.agencies.value()?.items ?? []);
+  protected readonly items = computed(() => valueOrNull(this.agencies)?.items ?? []);
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', [Validators.required]],

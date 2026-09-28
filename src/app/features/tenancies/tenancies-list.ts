@@ -2,7 +2,7 @@ import { httpResource } from '@angular/common/http';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { PagedList, apiUrl } from '../../core/api/api';
+import { PagedList, apiUrl, valueOrNull } from '../../core/api/api';
 import { Permissions } from '../../core/auth/auth.model';
 import { SessionStore } from '../../core/auth/session.store';
 import { AuDatePipe, HumanisePipe, MoneyPipe } from '../../shared/format';
@@ -41,10 +41,10 @@ export class TenanciesList {
     return apiUrl(`/api/v1/tenancies?${parameters}`);
   });
 
-  protected readonly items = computed(() => this.tenancies.value()?.items ?? []);
-  protected readonly total = computed(() => this.tenancies.value()?.total ?? 0);
-  protected readonly hasPrevious = computed(() => this.tenancies.value()?.hasPrevious ?? false);
-  protected readonly hasNext = computed(() => this.tenancies.value()?.hasNext ?? false);
+  protected readonly items = computed(() => valueOrNull(this.tenancies)?.items ?? []);
+  protected readonly total = computed(() => valueOrNull(this.tenancies)?.total ?? 0);
+  protected readonly hasPrevious = computed(() => valueOrNull(this.tenancies)?.hasPrevious ?? false);
+  protected readonly hasNext = computed(() => valueOrNull(this.tenancies)?.hasNext ?? false);
 
   protected readonly owed = computed(() =>
     this.items().reduce((total, tenancy) => total + tenancy.amountOwing, 0),

@@ -68,6 +68,21 @@ export function describeFailure(error: unknown, fallback = 'That did not work.')
   return describeProblem(error.error as ProblemDetails, fallback);
 }
 
+/**
+ * A resource's value, or null when it does not have one.
+ *
+ * `httpResource(...).value()` **throws** when the request failed — a 404 included. Several of
+ * these endpoints answer 404 as a normal outcome: a property with no management agreement yet, a
+ * tenancy whose ledger has not been opened. Reading `.value()` there kills change detection
+ * partway through the view, which looks nothing like a failed request: labels render blank,
+ * later bindings stop updating, and buttons appear to do nothing.
+ *
+ * So nothing reads `.value()` directly. This asks first.
+ */
+export function valueOrNull<T>(resource: { hasValue(): boolean; value(): T }): T | null {
+  return resource.hasValue() ? resource.value() : null;
+}
+
 /** Every list endpoint pages (NFR-13). */
 export interface PagedList<T> {
   readonly items: readonly T[];

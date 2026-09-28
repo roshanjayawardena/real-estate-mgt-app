@@ -2,7 +2,7 @@
   <app-state-note>Loading the property…</app-state-note>
 } @else if (property.error()) {
   <app-state-note tone="bad">That property could not be loaded.</app-state-note>
-} @else if (property.value(); as item) {
+} @else if (item(); as item) {
   <app-page-header [heading]="item.address" [subheading]="item.suburb + ' ' + item.state + ' ' + item.postcode">
     <a class="button button--quiet" routerLink="/properties">Back to portfolio</a>
     @if (item.currentTenancyId) {
@@ -192,7 +192,7 @@
               </button>
             </div>
           </form>
-        } @else if (agreement.value(); as terms) {
+        } @else if (terms(); as terms) {
           <dl class="facts">
             <div>
               <dt>Commission</dt>

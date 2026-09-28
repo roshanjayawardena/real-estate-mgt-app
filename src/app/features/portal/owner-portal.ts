@@ -1,7 +1,7 @@
 import { httpResource } from '@angular/common/http';
 import { Component, computed } from '@angular/core';
 
-import { apiUrl } from '../../core/api/api';
+import { apiUrl, valueOrNull } from '../../core/api/api';
 import { LedgerTable } from '../payments/ledger-table';
 import { LedgerStatement } from '../payments/payments.api';
 import { MoneyPipe } from '../../shared/format';
@@ -47,7 +47,7 @@ export class OwnerPortal {
     { defaultValue: [] },
   );
 
-  protected readonly statements = computed(() => this.ledgers.value());
+  protected readonly statements = computed(() => valueOrNull(this.ledgers) ?? []);
 
   protected readonly held = computed(() =>
     this.statements().reduce((total, statement) => total + statement.balance, 0),

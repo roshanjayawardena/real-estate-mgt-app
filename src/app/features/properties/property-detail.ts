@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
-import { apiUrl, describeFailure } from '../../core/api/api';
+import { apiUrl, describeFailure, valueOrNull } from '../../core/api/api';
 import { Permissions } from '../../core/auth/auth.model';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastStore } from '../../core/notifications/toast.store';
@@ -63,7 +63,13 @@ export class PropertyDetail {
     () => apiUrl('/api/v1/users?role=Owner&pageSize=100'),
   );
 
-  protected readonly ownerChoices = computed(() => this.ownerOptions.value()?.items ?? []);
+  protected readonly ownerChoices = computed(() => valueOrNull(this.ownerOptions)?.items ?? []);
+
+  /** The property, or null while it loads or if the request failed. Never `.value()` directly. */
+  protected readonly item = computed(() => valueOrNull(this.property));
+
+  /** Null is the normal answer here: a property can be managed before an agreement is signed. */
+  protected readonly terms = computed(() => valueOrNull(this.agreement));
 
   protected readonly property = httpResource<Property>(() =>
     apiUrl(`/api/v1/properties/${this.propertyId()}`),
@@ -74,7 +80,7 @@ export class PropertyDetail {
     apiUrl(`/api/v1/properties/${this.propertyId()}/agreement`),
   );
 
-  protected readonly hasAgreement = computed(() => this.agreement.value() != null);
+  protected readonly hasAgreement = computed(() => this.terms() !== null);
 
   /** A name for an owner id, for the read-only table. */
   protected ownerName(ownerUserId: string): string {
@@ -82,7 +88,7 @@ export class PropertyDetail {
   }
 
   protected readonly ownership = computed(() =>
-    (this.property.value()?.owners ?? []).reduce((total, owner) => total + owner.share, 0),
+    (this.item()?.owners ?? []).reduce((total, owner) => total + owner.share, 0),
   );
 
   /**
@@ -110,7 +116,7 @@ export class PropertyDetail {
   protected startEditingOwners(): void {
     this.failure.set(null);
 
-    const current = this.property.value()?.owners ?? [];
+    const current = this.item()?.owners ?? [];
 
     // A property with no owners starts with one row at 100%, which is the common case: a single
     // owner. Adding a second is then a matter of splitting that number.
@@ -188,7 +194,7 @@ export class PropertyDetail {
   }
 
   protected startEditingTerms(): void {
-    const current = this.agreement.value();
+    const current = this.terms();
 
     if (current) {
       this.termsForm.patchValue({

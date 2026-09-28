@@ -2,7 +2,7 @@
   <app-state-note>Loading your tenancy…</app-state-note>
 } @else if (tenancy.error()) {
   <app-state-note tone="bad">You do not have an active tenancy.</app-state-note>
-} @else if (tenancy.value(); as item) {
+} @else if (item(); as item) {
   <app-page-header
     heading="My tenancy"
     [subheading]="(item.startDate | auDate) + ' to ' + (item.endDate | auDate) + ' · ' + (item.term | humanise)"

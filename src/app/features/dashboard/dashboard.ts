@@ -2,7 +2,7 @@ import { httpResource } from '@angular/common/http';
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { PagedList, apiUrl } from '../../core/api/api';
+import { PagedList, apiUrl, valueOrNull } from '../../core/api/api';
 import { SessionStore } from '../../core/auth/session.store';
 import { PropertyListItem } from '../properties/properties.api';
 import { TenancyListItem } from '../tenancies/tenancies.api';
@@ -37,10 +37,10 @@ export class Dashboard {
     apiUrl('/api/v1/properties?status=Vacant&pageSize=1'),
   );
 
-  protected readonly behind = computed(() => this.arrears.value()?.items ?? []);
-  protected readonly behindCount = computed(() => this.arrears.value()?.total ?? 0);
-  protected readonly leasedCount = computed(() => this.leased.value()?.total ?? 0);
-  protected readonly vacantCount = computed(() => this.vacant.value()?.total ?? 0);
+  protected readonly behind = computed(() => valueOrNull(this.arrears)?.items ?? []);
+  protected readonly behindCount = computed(() => valueOrNull(this.arrears)?.total ?? 0);
+  protected readonly leasedCount = computed(() => valueOrNull(this.leased)?.total ?? 0);
+  protected readonly vacantCount = computed(() => valueOrNull(this.vacant)?.total ?? 0);
   protected readonly loading = computed(() => this.arrears.isLoading() || this.leased.isLoading());
 
   protected readonly occupancy = computed(() => {

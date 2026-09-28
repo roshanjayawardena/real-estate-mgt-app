@@ -2,9 +2,9 @@
   <app-state-note>Loading the tenancy…</app-state-note>
 } @else if (tenancy.error()) {
   <app-state-note tone="bad">That tenancy could not be loaded.</app-state-note>
-} @else if (tenancy.value(); as item) {
+} @else if (item(); as item) {
   <app-page-header
-    [heading]="property.value()?.address ?? 'Tenancy'"
+    [heading]="propertyItem()?.address ?? 'Tenancy'"
     [subheading]="(item.startDate | auDate) + ' to ' + (item.endDate | auDate) + ' · ' + (item.term | humanise)"
   >
     <a class="button button--quiet" [routerLink]="['/properties', item.propertyId]">Property</a>
@@ -122,7 +122,7 @@
 
       <div class="card__body">
         @if (panel() === 'increase') {
-          @if (eligibility.value(); as rules) {
+          @if (rules(); as rules) {
             <p class="muted rules">
               Earliest effective date {{ rules.earliestEffectiveDate | auDate }}, and notice must be
               given by {{ rules.noticeBy | auDate }} — {{ rules.noticeDays }} days, once every
@@ -224,7 +224,7 @@
       <div class="card__header">
         <h2>Rent ledger</h2>
         <div class="row">
-          @if (ledger.value(); as statement) {
+          @if (statement(); as statement) {
             <span class="muted">Balance {{ statement.balance | money }}</span>
           }
           @if (canRecordPayments && isRunning()) {
@@ -245,7 +245,7 @@
         <app-state-note tone="bad">
           No ledger for this tenancy yet. One is opened when the tenancy is activated.
         </app-state-note>
-      } @else if (ledger.value(); as statement) {
+      } @else if (statement(); as statement) {
         <app-ledger-table [entries]="statement.entries" />
       }
     </section>

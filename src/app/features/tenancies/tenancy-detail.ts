@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
 
-import { apiUrl, describeFailure } from '../../core/api/api';
+import { apiUrl, describeFailure, valueOrNull } from '../../core/api/api';
 import { Permissions } from '../../core/auth/auth.model';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastStore } from '../../core/notifications/toast.store';
@@ -63,7 +63,7 @@ export class TenancyDetail {
   protected readonly tenancy = httpResource<Tenancy>(() => apiUrl(`/api/v1/tenancies/${this.tenancyId()}`));
 
   protected readonly property = httpResource<Property>(() => {
-    const propertyId = this.tenancy.value()?.propertyId;
+    const propertyId = this.item()?.propertyId;
 
     return propertyId ? apiUrl(`/api/v1/properties/${propertyId}`) : undefined;
   });
@@ -79,9 +79,18 @@ export class TenancyDetail {
       : undefined,
   );
 
-  protected readonly isDraft = computed(() => this.tenancy.value()?.status === 'Draft');
+  /** Each of these can 404 as a normal outcome, so none of them is read with `.value()`. */
+  protected readonly item = computed(() => valueOrNull(this.tenancy));
+
+  protected readonly propertyItem = computed(() => valueOrNull(this.property));
+
+  protected readonly statement = computed(() => valueOrNull(this.ledger));
+
+  protected readonly rules = computed(() => valueOrNull(this.eligibility));
+
+  protected readonly isDraft = computed(() => this.item()?.status === 'Draft');
   protected readonly isRunning = computed(() => {
-    const status = this.tenancy.value()?.status;
+    const status = this.item()?.status;
 
     return status === 'Active' || status === 'Ending';
   });
@@ -116,7 +125,7 @@ export class TenancyDetail {
     this.panel.set(this.panel() === panel ? null : panel);
 
     if (panel === 'increase') {
-      const current = this.tenancy.value();
+      const current = this.item();
 
       if (current) {
         this.increaseForm.patchValue({ newWeeklyRent: current.weeklyRent });
