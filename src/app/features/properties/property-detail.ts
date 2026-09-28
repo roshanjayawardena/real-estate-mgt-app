@@ -1,6 +1,6 @@
 import { httpResource } from '@angular/common/http';
 import { Component, computed, inject, input, signal } from '@angular/core';
-import { FormControl, FormGroup, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
@@ -11,14 +11,14 @@ import { ToastStore } from '../../core/notifications/toast.store';
 import { AuDatePipe, HumanisePipe, MoneyPipe, today } from '../../shared/format';
 import { FormError, PageHeader, StateNote } from '../../shared/page';
 import { StatusBadge } from '../../shared/status-badge';
-import { Agreement, OwnerShare, PropertiesService, Property } from './properties.api';
+import { Agreement, PropertiesService, Property } from './properties.api';
 
-/** One row of the ownership table: who, how much of it, and whether they are the contact. */
-type OwnerRow = FormGroup<{
-  ownerUserId: FormControl<string>;
-  share: FormControl<number>;
-  isPrimaryContact: FormControl<boolean>;
-}>;
+/** One row of the ownership table being edited: who, how much, and whether they are the contact. */
+interface OwnerDraft {
+  ownerUserId: string;
+  share: number;
+  isPrimaryContact: boolean;
+}
 
 /**
  * PRP-03 and PRP-05. One property: what it is, who owns it, and on what terms we manage it.
@@ -89,8 +89,17 @@ export class PropertyDetail {
    * PRP-03. Shares have to total exactly 100: the rent is split by them, and a split that does
    * not add up is money unaccounted for. The server enforces it as well — showing the running
    * total here just means the person sees it while typing rather than after saving.
+   *
+   * Held as a signal rather than a FormArray. This is a list people add rows to, and under
+   * zoneless change detection a mutated FormArray is invisible: pushing a control changes no
+   * signal, so the view never re-renders and the new row simply does not appear. A signal always
+   * does, and for three fields per row the forms machinery was buying nothing anyway.
    */
-  protected readonly owners = this.builder.array<OwnerRow>([]);
+  protected readonly draftOwners = signal<OwnerDraft[]>([]);
+
+  protected readonly shareTotal = computed(() =>
+    this.draftOwners().reduce((total, owner) => total + (Number(owner.share) || 0), 0),
+  );
 
   protected readonly termsForm = inject(FormBuilder).nonNullable.group({
     commissionRate: [6.5, [Validators.required, Validators.min(0), Validators.max(20)]],
@@ -98,39 +107,45 @@ export class PropertyDetail {
     startDate: [today(), [Validators.required]],
   });
 
-  private ownerRow(owner?: OwnerShare): OwnerRow {
-    return this.builder.nonNullable.group({
-      ownerUserId: [owner?.ownerUserId ?? '', [Validators.required]],
-      share: [owner?.share ?? 100, [Validators.required, Validators.min(0.01), Validators.max(100)]],
-      isPrimaryContact: [owner?.isPrimaryContact ?? false],
-    });
-  }
-
-  protected shareTotal(): number {
-    return this.owners.controls.reduce((total, row) => total + Number(row.getRawValue().share || 0), 0);
-  }
-
   protected startEditingOwners(): void {
     this.failure.set(null);
-    this.owners.clear();
 
     const current = this.property.value()?.owners ?? [];
 
-    if (current.length === 0) {
-      this.owners.push(this.ownerRow());
-    } else {
-      current.forEach((owner) => this.owners.push(this.ownerRow(owner)));
-    }
+    // A property with no owners starts with one row at 100%, which is the common case: a single
+    // owner. Adding a second is then a matter of splitting that number.
+    this.draftOwners.set(
+      current.length === 0
+        ? [{ ownerUserId: '', share: 100, isPrimaryContact: true }]
+        : current.map((owner) => ({ ...owner })),
+    );
 
     this.editingOwners.set(true);
   }
 
   protected addOwner(): void {
-    this.owners.push(this.ownerRow({ ownerUserId: '', share: 0, isPrimaryContact: false }));
+    this.draftOwners.update((owners) => [
+      ...owners,
+      { ownerUserId: '', share: 0, isPrimaryContact: false },
+    ]);
   }
 
   protected removeOwner(index: number): void {
-    this.owners.removeAt(index);
+    this.draftOwners.update((owners) => owners.filter((_, position) => position !== index));
+  }
+
+  /** Each field writes back a new array, so every edit is a signal change the view can see. */
+  protected setOwner(index: number, change: Partial<OwnerDraft>): void {
+    this.draftOwners.update((owners) =>
+      owners.map((owner, position) => (position === index ? { ...owner, ...change } : owner)),
+    );
+  }
+
+  /** At most one primary contact, so choosing one clears the others (BR-02). */
+  protected setPrimaryContact(index: number): void {
+    this.draftOwners.update((owners) =>
+      owners.map((owner, position) => ({ ...owner, isPrimaryContact: position === index })),
+    );
   }
 
   /** Replaces the whole list, which is how the API models it: owners are set, not edited one by one. */
@@ -139,9 +154,16 @@ export class PropertyDetail {
       return;
     }
 
-    if (this.owners.invalid) {
-      this.owners.markAllAsTouched();
-      this.failure.set('Every owner needs a user id and a share.');
+    const owners = this.draftOwners();
+
+    if (owners.length === 0 || owners.some((owner) => !owner.ownerUserId)) {
+      this.failure.set('Choose an owner for every row.');
+
+      return;
+    }
+
+    if (this.shareTotal() !== 100) {
+      this.failure.set(`The shares total ${this.shareTotal()}%. They must total exactly 100%.`);
 
       return;
     }
@@ -151,7 +173,7 @@ export class PropertyDetail {
 
     try {
       await firstValueFrom(
-        this.properties.assignOwners(this.propertyId(), this.owners.getRawValue()),
+        this.properties.assignOwners(this.propertyId(), owners),
       );
 
       this.toasts.success('Owners recorded.');

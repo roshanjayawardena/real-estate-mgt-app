@@ -57,54 +57,73 @@
 
       @if (editingOwners()) {
         <div class="card__body">
-          <form (ngSubmit)="saveOwners()" novalidate>
-            @for (row of owners.controls; track $index) {
-              <div class="owner-row" [formGroup]="row">
-                <div class="field">
-                  <label class="field__label" [for]="'owner' + $index">Owner</label>
-                  <select [id]="'owner' + $index" formControlName="ownerUserId">
-                    <option value="">Choose an owner</option>
-                    @for (person of ownerChoices(); track person.userId) {
-                      <option [value]="person.userId">{{ person.fullName }} · {{ person.email }}</option>
-                    }
-                  </select>
-                </div>
-                <div class="field narrow">
-                  <label class="field__label" [for]="'share' + $index">Share %</label>
-                  <input [id]="'share' + $index" type="number" step="0.01" formControlName="share" />
-                </div>
-                <label class="check">
-                  <input type="checkbox" formControlName="isPrimaryContact" />
-                  Primary contact
-                </label>
-                @if (owners.length > 1) {
-                  <button type="button" class="button button--quiet button--small" (click)="removeOwner($index)">
-                    Remove
-                  </button>
-                }
-              </div>
-            }
-
-            <app-form-error [message]="failure()" />
-
-            <p class="muted total" [class.total--bad]="shareTotal() !== 100">
-              {{ shareTotal() }}% allocated — the shares must total exactly 100.
-            </p>
-
-            <div class="row row--end">
-              <button type="button" class="button button--quiet" (click)="addOwner()">Add owner</button>
-              <button type="button" class="button button--quiet" (click)="editingOwners.set(false)">Cancel</button>
-              <button type="submit" class="button" [disabled]="saving()">
-                {{ saving() ? 'Saving…' : 'Save owners' }}
-              </button>
-            </div>
-          </form>
           @if (ownerChoices().length === 0) {
             <p class="field__hint">
-              No owners yet. Invite one from <a routerLink="/people">People</a> — they appear here as
-              soon as the invitation is accepted.
+              Nobody has the Owner role yet. Invite one from <a routerLink="/people">People</a> —
+              they appear here as soon as they accept.
             </p>
           }
+
+          @for (owner of draftOwners(); track $index) {
+            <div class="owner-row">
+              <div class="field">
+                <label class="field__label" [for]="'owner' + $index">Owner</label>
+                <select
+                  [id]="'owner' + $index"
+                  [value]="owner.ownerUserId"
+                  (change)="setOwner($index, { ownerUserId: $any($event.target).value })"
+                >
+                  <option value="">Choose an owner</option>
+                  @for (person of ownerChoices(); track person.userId) {
+                    <option [value]="person.userId">{{ person.fullName }} · {{ person.email }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="field narrow">
+                <label class="field__label" [for]="'share' + $index">Share %</label>
+                <input
+                  [id]="'share' + $index"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  [value]="owner.share"
+                  (input)="setOwner($index, { share: +$any($event.target).value })"
+                />
+              </div>
+
+              <label class="check">
+                <input
+                  type="radio"
+                  name="primaryContact"
+                  [checked]="owner.isPrimaryContact"
+                  (change)="setPrimaryContact($index)"
+                />
+                Primary contact
+              </label>
+
+              @if (draftOwners().length > 1) {
+                <button type="button" class="button button--quiet button--small" (click)="removeOwner($index)">
+                  Remove
+                </button>
+              }
+            </div>
+          }
+
+          <app-form-error [message]="failure()" />
+
+          <p class="muted total" [class.total--bad]="shareTotal() !== 100">
+            {{ shareTotal() }}% allocated — the shares must total exactly 100.
+          </p>
+
+          <div class="row row--end">
+            <button type="button" class="button button--quiet" (click)="addOwner()">Add owner</button>
+            <button type="button" class="button button--quiet" (click)="editingOwners.set(false)">Cancel</button>
+            <button type="button" class="button" [disabled]="saving()" (click)="saveOwners()">
+              {{ saving() ? 'Saving…' : 'Save owners' }}
+            </button>
+          </div>
         </div>
       } @else if (item.owners.length === 0) {
         <app-state-note>
